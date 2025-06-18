@@ -178,29 +178,75 @@ def video_stream():
 @app.route('/histogram_stream')
 @login_required
 def histogram_stream():
-    global latest_frame
-    if latest_frame is None:
-        return "No frame", 503
+    def generate():
+        global latest_frame
+        while True:
+            if latest_frame is None:
+                continue
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    ax.set_xlim(0, 256)
-    ax.set_ylim(0, 10000)  # Beispielwert anpassen
+            frame = latest_frame.copy()
+            frame_h, frame_w = frame.shape[:2]
 
-    for i, color in enumerate(('b', 'g', 'r')):
-        hist = cv2.calcHist([latest_frame], [i], None, [256], [0, 256])
-        ax.plot(hist, color=color)
+            # Histogramm berechnen (für B,G,R)
+            hist_height = frame_h - 20  # fixe Höhe für Overlay-Histogramm
+            hist_width = frame_w - 20  # Breite ca. 1/3 vom Frame
 
-    ax.set_title("Live RGB-Histogramm")
-    ax.set_xlabel("Helligkeit")
-    ax.set_ylabel("Häufigkeit")
-    fig.tight_layout()
+            hist_img = np.zeros((hist_height, hist_width, 3), dtype=np.uint8)
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close(fig)
-    buf.seek(0)
+            for i, col in enumerate([0, 1, 2]):  # BGR Kanäle
+                hist = cv2.calcHist([frame], [col], None, [hist_width], [0, 256])
+                cv2.normalize(hist, hist, 0, hist_height, cv2.NORM_MINMAX)
 
-    return send_file(buf, mimetype='image/png')
+                for x in range(1, hist_width):
+                    cv2.line(hist_img,
+                             (x - 1, hist_height - int(hist[x - 1])),
+                             (x, hist_height - int(hist[x])),
+                             (255 if col == 0 else 0,
+                              255 if col == 1 else 0,
+                              255 if col == 2 else 0), 1)
+
+            # Position zum Einfügen (unten links)
+            x_offset = 10  # Abstand vom linken Rand
+            y_offset = frame_h - hist_height - 10  # 10 Pixel Abstand unten
+
+            # Maske: Alle Pixel, die nicht schwarz sind
+            mask = cv2.cvtColor(hist_img, cv2.COLOR_BGR2GRAY)
+            _, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY)
+
+            # ROI im Frame
+            roi = frame[y_offset:y_offset + hist_height, x_offset:x_offset + hist_width]
+
+            # hist_img und roi als float für Mischrechnung
+            hist_float = hist_img.astype(float)
+            roi_float = roi.astype(float)
+
+            # Alpha für die Farb-Linien
+            alpha = 1
+
+            # Maske auf [0..1]
+            mask_norm = mask.astype(float) / 255
+
+            # Pixelweise Mischung:
+            for c in range(3):
+                roi_float[:, :, c] = roi_float[:, :, c] * (1 - alpha * mask_norm) + hist_float[:, :, c] * (
+                            alpha * mask_norm)
+
+            # Ergebnis zurück in uint8
+            frame[y_offset:y_offset + hist_height, x_offset:x_offset + hist_width] = roi_float.astype(np.uint8)
+
+            # JPEG-Encodieren
+            ret, jpeg = cv2.imencode('.jpg', frame)
+            if not ret:
+                continue
+            frame_bytes = jpeg.tobytes()
+
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+            time.sleep(1 / 30)  # ca. 30 FPS
+
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 
 if __name__ == "__main__":

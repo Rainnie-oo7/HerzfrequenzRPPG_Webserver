@@ -33,20 +33,15 @@
                     {% endfor %}
                 </ul>
         </div>
-
-        <div style="margin-top: 30px;">
-            <h2>Live Video</h2>
-            <img src="{{ url_for('video_stream') }}" alt="Live Video" style="width: 100%; max-width: 480px; border: 1px solid #000;">
+        <div>
+            <h2>afpoihaophf</h2>
+            <img src="{{ url_for('histogram_stream') }}" style="max-width: 100%; height: auto;" />
         </div>
 
-        <img id="histogram" src="{{ url_for('histogram_stream') }}" alt="Histogramm">
-
-        <script>
-          setInterval(() => {
-            const img = document.getElementById('histogram');
-            img.src = "{{ url_for('histogram_stream') }}?t=" + new Date().getTime();
-          }, 1000);  // alle 1 Sekunden
-        </script>
+        <div>
+            <h2>Video + Live Histogramm</h2>
+            <img src="{{ url_for('histogram_stream') }}" style="max-width: 100%; height: auto;" />
+        </div>
 
     </div>
 
