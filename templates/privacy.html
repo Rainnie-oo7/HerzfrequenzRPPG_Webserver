@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Datenschutzerklärung</title>
+</head>
+<body>
+    <h1>Willkommen bei der Herzfrequenzmessung-Webanwendung</h1>
+
+    <form method="post" action="{{ url_for('privacy') }}">
+        {{ error_message|safe }}
+
+        <div style="border:1px solid #ccc; padding:10px; max-width:700px;">
+            <h2>Datenschutzerklärung</h2>
+            <p><p>Diese kleine Herzfrequenzmessungsapp speichert deine eingegebenen Bilddateien, Dateien, Videos und deinen
+                Benutzernamen extern auf einem IONOS-Server. Bei Bedarf auch lokal auf meinem eigenen Rechner (Rechner des Administrators dieser Webseite, Rainnie). Sie werden dort gespeichert
+                bis Du Sie oder der Administrator dieser Webseite, Rainnie, sie löscht. Sie werden gespeichert, damit Du deine Aufgaben
+                auch beim nächsten Mal wieder sehen kannst.
+                dass die zur Datenverarbeitung genommenen Daten auf unserem Servern gespeichert werden. Du kannst Sie löschen
+                da der Gebrauch rein für private und demonstrative Zwecke vorgesehen ist, kann der Betreiber dieser Webseite
+                verändern. Wir haben dadurch Zugriff auf Deine zur Verfügung gestellten Daten!!!
+                Die Daten werden verschlüsselt und sind edge-computer verarbeitet und sind nur für Dich sichtbar, wenn Du dich einloggst.</p>
+                Die Daten werden durch die Freigabe eines Freigabe-Links aus von Deinem Google-Drive Cloud-Service heruntergeladen, damit Du deine Cloud wieder leeren kannst.
+                Durch die Nutzung dieser Herzfrequenzmessungsapp wirst du aufgefordert einen öffentlichen Freigabe-Link an uns zu übersenden.
+                Dieser wird verschlüsselt an uns übersendet, trotzdem: Der Quellcode ist ...Platzhalter...hier... einsehbar, die Nutzung erfolgt auf eigene Gefahr.
+                Alle Daten, die Du uns zur Verfügung stellst, samt den Daten aus Deinem Freigabe-Link sind als Common Creative anzusehen. Es wird nichts an Dritte weitergegeben, nichts verkauft, kein Tracking betrieben. Neben der Analyse der Herzfrequenz,
+                findet keine Weitergabe oder Analyse deiner Daten statt. Mit dem Klicken auf Akzeptieren erklärst Du dich einverstanden,
+            <p>Durch das Akzeptieren erklärst Du Dich damit einverstanden.</p>
+        </div>
+
+        <p>
+            <label>
+                <input type="checkbox" name="accept"> Ich akzeptiere die Datenschutzerklärung
+            </label>
+        </p>
+
+        <button type="submit">Zur Herzfrequenzmessung</button>
+    </form>
+</body>
+</html>

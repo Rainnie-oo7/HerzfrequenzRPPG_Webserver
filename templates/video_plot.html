@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Video Stream</title>
+</head>
+<body>
+    <h1>Live Webcam Stream</h1>
+    <img src="{{ url_for('video_feed') }}" alt="Video Stream" style="border: 2px solid black;">
+    <br>
+    <a href="{{ url_for('index') }}">Zurück zur /index-Seite</a>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    {% if not current_user.is_authenticated %}
+        <meta http-equiv="refresh" content="0; url={{ url_for('login') }}">
+    {% endif %}
+    <h1>Hallo, {{ current_user.username }}!</h1>
+    <p>Willkommen auf deinem Dashboard.</p>
+    <p>rPPG ...PlatzhalterWeitereInfos...</p>
+
+    <p>Mit dem Klick auf „Akzeptieren“ auf der nachfolgenden Seite "<a href="{{ url_for('privacy') }}">Zur Herzfrequenzmessung</a>" |bestätigst Du, dass Du <br>
+        es gelesen hast und damit einverstanden bist. <br> Weitere Infos findest du ... Platzhalter(hier) ...</p>
+       </p>
+
+
+
+    <a href="{{ url_for('privacy') }}">Zur Herzfrequenzmessung</a> |
+    <a href="{{ url_for('logout') }}">Logout</a>
+</body>
+</html>
