@@ -1,4 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
+import io
+import matplotlib
+matplotlib.use('Agg')  # Verhindert GUI-Fehler in Webserver-Kontext
+import matplotlib.pyplot as plt
+import numpy as np
+import threading
+import time
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import cv2
@@ -10,6 +17,9 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+latest_frame = None
+cap = cv2.VideoCapture('static/vid3ich.mp4')
+
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,32 +36,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 ####
-camera = cv2.VideoCapture(0)  # Index 0 für Standardkamera
-###Funzt nicht mit Smartphone. Am PC habe ich keine Kamera
-#muss es mit vid1.mp4 ausprobieren
-def generate_frames():
-    while True:
-        success, frame = camera.read()
-        if not success:
-            break
-        else:
-            # JPEG-Encoding
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            # Multipart response
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-@app.route('/video_plot')
-@login_required
-def video_plot():
-    return render_template('video_plot.html')
-
-@app.route('/video_feed')
-@login_required
-def video_feed():
-    return Response(generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -152,9 +137,75 @@ def add_header(response):
     response.headers['Expires'] = '-1'
     return response
 
+@app.route('/static_image')
+@login_required
+def static_image():
+    # Beispiel: Bild laden (oder generiere eins mit OpenCV)
+    img = cv2.imread('static/Einkaufskorb.png')  # → stelle sicher, dass es existiert
+    # img = cv2.putText(img, 'Hallo', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+    _, buffer = cv2.imencode('.png', img)
+    io_buf = io.BytesIO(buffer.tobytes())
+
+    return send_file(io_buf, mimetype='image/jpeg')
+
+def capture_loop():
+    global latest_frame
+    while True:
+        success, frame = cap.read()
+        if not success:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            continue
+        latest_frame = frame.copy()
+        time.sleep(1 / 30)  # ca. 30 FPS
+
+@app.route('/video_stream')
+@login_required
+def video_stream():
+    def stream():
+        global latest_frame
+        while True:
+            if latest_frame is None:
+                continue
+            _, buffer = cv2.imencode('.jpg', latest_frame)
+            frame_bytes = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            time.sleep(1 / 30)
+
+    return Response(stream(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/histogram_stream')
+@login_required
+def histogram_stream():
+    global latest_frame
+    if latest_frame is None:
+        return "No frame", 503
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.set_xlim(0, 256)
+    ax.set_ylim(0, 10000)  # Beispielwert anpassen
+
+    for i, color in enumerate(('b', 'g', 'r')):
+        hist = cv2.calcHist([latest_frame], [i], None, [256], [0, 256])
+        ax.plot(hist, color=color)
+
+    ax.set_title("Live RGB-Histogramm")
+    ax.set_xlabel("Helligkeit")
+    ax.set_ylabel("Häufigkeit")
+    fig.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    plt.close(fig)
+    buf.seek(0)
+
+    return send_file(buf, mimetype='image/png')
 
 
 if __name__ == "__main__":
+    threading.Thread(target=capture_loop, daemon=True).start()
+
     with app.app_context():
         db.create_all()
     app.run(host='0.0.0.0')
